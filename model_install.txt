@@ -1,0 +1,86 @@
+https://huggingface.co/Bllossom/llama-3.2-Korean-Bllossom-3B-gguf-Q4_K_M/blob/main/llama-3.2-Korean-Bllossom-3B-gguf-Q4_K_M.gguf
+
+Modefils 
+
+FROM ./llama-3.2-Korean-Bllossom-3B-gguf-Q4_K_M.gguf
+
+PARAMETER temperature 0.4
+PARAMETER top_p 0.6
+
+TEMPLATE """{{ with .LastMessage }}
+{{ if eq .Role "user" }}{{ .Content }}{{ end }}
+{{ end }}"""
+
+
+SYSTEM """주어진 텍스트는 OCR(광학 문자 인식) 결과로, 문법적으로 부자연스럽거나 오타가 포함될 수 있습니다. 
+또한 텍스트는 불필요한 줄바꿈 기호(\n)나 공백이 포함될 수 있습니다. 
+당신의 작업은 텍스트를 보다 자연스럽고 문법적으로 정확하게 수정하는 것입니다. 
+다음의 지침을 따라 텍스트를 재구성하십시오:
+1. 줄바꿈 기호(\n)를 제거하고, 텍스트를 자연스러운 하나의 문단으로 정리하십시오.
+2. 불필요한 공백이나 특수 기호를 제거하고 의미를 명확히 하십시오.
+3. 텍스트의 의미를 최대한 보존하면서, 문법적 오류나 비문을 수정하십시오.
+출력은 반드시 한국어로 이루어져야 하며, 텍스트는 자연스러운 문장 흐름을 갖춰야 합니다.
+
+
+The provided text is the result of OCR (Optical Character Recognition) and may contain grammatical errors, typos, or unnatural line breaks (\n). 
+Your task is to revise the text to make it more natural and grammatically correct. 
+Follow these instructions to refine the text:
+1. Remove line breaks (\n) and consolidate the text into a coherent single paragraph.
+2. Eliminate unnecessary spaces or special symbols and clarify the meaning.
+3. Preserve the original meaning while correcting grammatical errors or awkward phrasing.
+The output must always be in Korean and structured with a smooth flow of sentences."""
+
+ollama create Llama3.2_kr_ocr -f Modefile
+
+
+FROM ./Llama-3-KR.gguf
+
+PARAMETER temperature 0.6
+PARAMETER top_p 0.9
+
+TEMPLATE """<|start_header_id|>system<|end_header_id|>
+
+Cutting Knowledge Date: December 2023
+
+{{ if .System }}{{ .System }}
+{{- end }}
+{{- if .Tools }}When you receive a tool call response, use the output to format an answer to the orginal user question.
+
+You are a helpful assistant with tool calling capabilities.
+{{- end }}<|eot_id|>
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+{{- if eq .Role "user" }}<|start_header_id|>user<|end_header_id|>
+{{- if and $.Tools $last }}
+
+Given the following functions, please respond with a JSON for a function call with its proper arguments that best answers the given prompt.
+
+Respond in the format {"name": function name, "parameters": dictionary of argument name and its value}. Do not use variables.
+
+{{ range $.Tools }}
+{{- . }}
+{{ end }}
+{{ .Content }}<|eot_id|>
+{{- else }}
+
+{{ .Content }}<|eot_id|>
+{{- end }}{{ if $last }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ end }}
+{{- else if eq .Role "assistant" }}<|start_header_id|>assistant<|end_header_id|>
+{{- if .ToolCalls }}
+{{ range .ToolCalls }}
+{"name": "{{ .Function.Name }}", "parameters": {{ .Function.Arguments }}}{{ end }}
+{{- else }}
+
+{{ .Content }}
+{{- end }}{{ if not $last }}<|eot_id|>{{ end }}
+{{- else if eq .Role "tool" }}<|start_header_id|>ipython<|end_header_id|>
+
+{{ .Content }}<|eot_id|>{{ if $last }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ end }}
+{{- end }}
+{{- end }}"""
+
+SYSTEM """You are a helpful AI assistant. Please answer the user's questions kindly. 당신은 유능한 AI 어시스턴트 입니다. 사용자의 질문에 대해 친절하게 답변해주세요."""
