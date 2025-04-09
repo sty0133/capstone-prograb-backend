@@ -6,6 +6,7 @@ ollama
 Flask
 Flask-SocketIO
 Flask-CORS
+flask_restx
 python-dotenv
 numpy
 scikit-learn
@@ -17,3 +18,4 @@ google-cloud-vision
 faiss-cpu
 sentence_transformers
 pyppeteer
+google-cloud-storage

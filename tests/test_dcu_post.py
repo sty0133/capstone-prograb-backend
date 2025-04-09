@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from html import escape
 
 # 검색어를 Python 변수로 설정
 search_order = "대구가톨릭대학교 임시직 직원 채용 공고(9월 1일부, 추가)"

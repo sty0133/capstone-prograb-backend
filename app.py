@@ -9,17 +9,18 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
-    from views import bot_views
-    app.register_blueprint(bot_views.pdf, url_prefix='/pdf')
-    app.register_blueprint(bot_views.chat, url_prefix='/chat')
+    from views.chat_views import chat
+    from views.pdf_views import pdf
+    app.register_blueprint(chat, url_prefix='/chat')
+    app.register_blueprint(pdf, url_prefix='/pdf')
+
+    CORS(app)
 
     return app
 
 if __name__ == "__main__":
     app = create_app()
-    CORS(app)
-
-    app.run(debug = True, port = 8080, host = '0.0.0.0')
+    app.run(debug=True, port=8080, host='0.0.0.0')
 
 # socketio = SocketIO(app, cors_allowed_origins="*")
 # # 모델 초기화 함수

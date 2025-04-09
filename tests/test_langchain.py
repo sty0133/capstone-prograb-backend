@@ -1,4 +1,4 @@
-from components.langchain import *
+from services.langchain import *
 
 while True:
     q = input("질문을 입력하세요: ")

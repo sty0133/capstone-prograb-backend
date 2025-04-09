@@ -3,17 +3,17 @@ import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from utils.model_utils import *
+from utils.google_cld_vision import *
 from utils.date_utils import *
 from utils.text_utils import *
+from utils.embedding_utils import *
 
-from components.mongodb import *
-from components.faiss import *
-from components.langchain import load_and_retrieve_docs_sliding_window
-
-from html import escape
+from models.mongodb.mongodb import *
+from models.faiss.process import InsertVectors, SaveIndex
 
 base_url = 'https://www.cu.ac.kr'
+
+# FAISS_INDEX_DCU_PATH = os.getenv('FAISS_INDEX_DCU_PATH')
 
 def make_full_url(url):
     valid_starts = ["https://www.cu.ac.kr", "http://www.cu.ac.kr", "https://cu.ac.kr", "http://cu.ac.kr"]
@@ -48,7 +48,7 @@ class CrawlingNotice:
     def format_embedded_data(doc_no, category, title, content_text, image_text_conv):
         all_contents = title + content_text + image_text_conv
         embedded_vector = load_and_retrieve_docs_sliding_window(all_contents)
-        faiss_ids = instert_vectors(embedded_vector)
+        faiss_ids = InsertVectors.dcu(embedded_vector)
 
         formated_embed = {
             "docNo": doc_no,
@@ -188,7 +188,7 @@ class CrawlingNotice:
                             if 'src' in image_tag.attrs:
                                 image_url = image_tag['src']
                                 image_url = make_full_url(image_url)
-                                image_text = detect_text_uri(image_url)
+                                image_text = detect_text_image_url(image_url)
                                 image_text_conv += image_text
                                 images.append(image_url)
 
@@ -243,7 +243,7 @@ class CrawlingNotice:
                     if flag_doc and flag_emb:
                         doc_no += 1
                         visited.append(url)
-                        save_index()
+                        SaveIndex.dcu()
 
                     else: return
 

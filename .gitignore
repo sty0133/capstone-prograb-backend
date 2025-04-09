@@ -6,3 +6,8 @@ views/__pycache__/bot_views.cpython-311.pyc
 Modefile
 /utils/__pycache__
 prograb-446401-7e4846bbef85.json
+<<<<<<< Updated upstream
+=======
+.env
+>>>>>>> Stashed changes
+/uploads/pdf
