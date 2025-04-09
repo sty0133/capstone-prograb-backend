@@ -19,3 +19,5 @@ faiss-cpu
 sentence_transformers
 pyppeteer
 google-cloud-storage
+openai
+asyncio

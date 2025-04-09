@@ -1,13 +1,10 @@
-
-views/__pycache__/bot_views.cpython-311.pyc
 .DS_Store
-/components/__pycache__
 *.index
 Modefile
-/utils/__pycache__
 prograb-446401-7e4846bbef85.json
 <<<<<<< Updated upstream
 =======
 .env
 >>>>>>> Stashed changes
 /uploads/pdf
+__pycache__/
