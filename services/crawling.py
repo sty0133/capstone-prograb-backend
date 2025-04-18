@@ -8,7 +8,7 @@ from utils.date_utils import *
 from utils.text_utils import *
 from utils.embedding_utils import *
 
-from models.mongodb.mongodb import *
+from models.mongodb.mg_dcu_model import *
 from models.faiss.process import InsertVectors, SaveIndex
 
 base_url = 'https://www.cu.ac.kr'
@@ -237,8 +237,8 @@ class CrawlingNotice:
                     document = self.format_notice_data(doc_no, url, title, date, author, views, images, image_text_conv, attachments, content_text, category)
                     embedded = self.format_embedded_data(doc_no, category, title, content_text, image_text_conv)
 
-                    flag_doc = MongodbNotice.insert_document(document)
-                    flag_emb = EmbeddedVector.insert_document(embedded)
+                    flag_doc = MongodbDCU.insert_document(document)
+                    flag_emb = MongodbEmbeddedVector.insert_document(embedded)
 
                     if flag_doc and flag_emb:
                         doc_no += 1
@@ -271,7 +271,7 @@ class CrawlingNotice:
                 검색 결과에서 제목을 기반으로 href 추출하여 다음 페이지로 이동
                 '''
 
-                title = MongodbNotice.get_document_title_by_url(url)
+                title = MongodbDCU.get_document_title_by_url(url)
 
                 if not title:
                     check_point = None
@@ -378,7 +378,7 @@ class StartCrawling:
             ]
 
             # MongoDB에 저장된 모든 URL 가져오기
-            visited = MongodbNotice.get_all_urls()
+            visited = MongodbDCU.get_all_urls()
 
             # 각 notice_list의 URL로 시작하는 visited URL을 추가
             for notice in notice_list:
@@ -388,10 +388,10 @@ class StartCrawling:
 
             # 문서 번호 조회
             global doc_no
-            doc_no = int(MongodbNotice.get_max_doc_no()) + 1
+            doc_no = int(MongodbDCU.get_max_doc_no()) + 1
 
             global check_point
-            check_point = MongodbNotice.get_latest_document_url()
+            check_point = MongodbDCU.get_latest_document_url()
             start_index = 0
 
             if check_point:

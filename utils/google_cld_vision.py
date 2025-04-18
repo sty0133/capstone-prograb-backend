@@ -200,5 +200,7 @@ def detect_text_pdf_path(pdf_paths: list):
             except Exception as e:
                 print(f"임시 파일 삭제 중 오류: {str(e)}")
     
-    # 모든 텍스트를 하나의 문자열로 합쳐서 반환
-    return "\n\n".join(all_texts)   # PDF 텍스트 OCR은 이미지 OCR과 달리 텍스트 좌표가 없음.
+    # 모든 텍스트를 하나의 문자열로 합쳐서 반환 (\n과 \n\n로 구분)
+    all_texts = [text.replace("\n", " ") for text in all_texts]
+    all_texts = [text.replace("\n\n", "\n") for text in all_texts]
+    return all_texts  # PDF 텍스트 OCR은 이미지 OCR과 달리 텍스트 좌표가 없음.

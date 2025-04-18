@@ -1,14 +1,14 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai import APIError, RateLimitError, APIConnectionError
 import os
 
 class ChatGPT:
     def __init__(self):
         # OpenAI API 키 환경변수에서 가져오기
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        self.client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.model = "gpt-3.5-turbo"
 
-    def get_response(self, content: str) -> str:
+    async def get_response(self, content: str) -> str:
         try:
             messages = [
                 {
@@ -32,6 +32,7 @@ class ChatGPT:
                                 11. 질문에 대한 정보가 자료 내에 존재하지 않거나 불분명할 경우, "제공된 자료에서는 해당 내용을 찾을 수 없습니다."라고 정중히 알리고, 절대로 임의로 내용을 추가하지 마라.
                                 12. 사용자 질문이 모호하거나 불분명한 경우, "보다 정확한 정보를 위해 질문을 구체적으로 말씀해 주세요."와 같이 다시 질문을 유도해라.
                                 13. 답변은 친절하고 명확하게 하되, 군더더기 없이 요점을 중심으로 설명해.
+                                14. 사용자가 질문을 반복할 경우, "같은 질문에 대한 답변을 드리겠습니다."와 같이 안내하고, 이전 답변을 그대로 제공해.
 
                                 참고자료는 시스템 입력으로 함께 주어질 예정이며, 각 자료에는 `rawTitle`, `rawContent`, `info`, `attachments`, `images` 등의 정보가 포함돼 있어. 이를 바탕으로 사용자의 질문에 성실히 답변해.
                                 """
@@ -42,11 +43,11 @@ class ChatGPT:
                  }
             ]
 
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0.1,
-                max_tokens=11000
+                max_tokens=4096 # 최대 토큰 4096
             )
 
             return response.choices[0].message.content
@@ -59,36 +60,3 @@ class ChatGPT:
             return f"OpenAI API 오류가 발생했습니다: {str(e)}"
         except Exception as e:
             return f"예상치 못한 오류가 발생했습니다: {str(e)}"
-
-    # async def get_streaming_response(
-    #     self, 
-    #     messages: List[Dict[str, str]], 
-    #     temperature: float = 0.7
-    # ):
-    #     """
-    #     스트리밍 방식으로 GPT 응답을 받는 메서드
-
-    #     Args:
-    #         messages (List[Dict[str, str]]): 대화 메시지 목록
-    #         temperature (float): 응답의 창의성 정도 (0.0 ~ 1.0)
-
-    #     Yields:
-    #         str: GPT 모델의 응답 (청크 단위로 반환)
-    #     """
-    #     try:
-    #         full_messages = [self.system_prompt] + messages
-
-    #         stream = self.client.chat.completions.create(
-    #             model=self.model,
-    #             messages=full_messages,
-    #             temperature=temperature,
-    #             stream=True
-    #         )
-
-    #         for chunk in stream:
-    #             if chunk.choices[0].delta.content is not None:
-    #                 yield chunk.choices[0].delta.content
-
-    #     except Exception as e:
-    #         error_message = f"GPT 스트리밍 중 오류 발생: {str(e)}"
-    #         raise Exception(error_message)

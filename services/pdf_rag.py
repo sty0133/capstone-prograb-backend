@@ -1,28 +1,48 @@
-from models.mongodb.mongodb import *
+import asyncio
+
+from models.mongodb.mg_pdf_model import MongodbPDF
 from models.faiss.process import FindTopSimilarVectors
 
-from utils.list_utils import *
 from utils.embedding_utils import embedding_model
+from utils.openai_gpt import ChatGPT
 
-def rag_chain(question, pdf_group_id):
-    if not pdf_group_id:
-        return "pdf_group_id가 필요합니다."
-    
-    # retrieved_docs = retrieve_docs(question)
+def pdf_rag_chain(question, chat_id):
+
     query_vector = embedding_model(question)
 
-    faiss_ids = FindTopSimilarVectors.pdf(query_vector, pdf_group_id)
-    
+    faiss_ids = FindTopSimilarVectors.pdf(query_vector, chat_id)   # 벡터 ID 가 추출된다.
+
     if not faiss_ids:
         return "질문을 구체적으로 해주세요."
     
-    embedded_doc = EmbeddedVector.get_documents_by_faiss_ids(faiss_ids)
-    find_docs = [MongodbNotice.find_document_by_doc_and_category(doc) for doc in embedded_doc]
-    # docs = remove_duplicates_preserve_order(find_docs)
+    find_docs = MongodbPDF.find_documents_by_faiss_ids(faiss_ids)
 
-    formatted_prompt = f"Question: {question}\n\nContext: {find_docs}"
-    return find_docs
-    # response = llama_kr_model(formatted_prompt)
-    # if response is None:
-    #     return "응답을 생성하는데 실패했습니다."
-    # return response
+    formatted_prompt = f"사용자 질문: {question}\n참고자료: {find_docs}"
+
+    async def async_function():
+        chat_gpt = ChatGPT()
+        return await chat_gpt.get_response(formatted_prompt)
+
+    try:
+        response = asyncio.run(
+            asyncio.wait_for(async_function(), timeout=30.0)
+        )
+
+    except asyncio.TimeoutError:
+        response = "요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요."
+
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                response = loop.run_until_complete(async_function())
+            except Exception as inner_e:
+                response = f"이벤트 루프 실행 중 오류가 발생했습니다: {str(inner_e)}"
+        else:
+            response = f"실행 중 오류가 발생했습니다: {str(e)}"
+
+    except Exception as e:
+        response = f"예상치 못한 오류가 발생했습니다: {str(e)}"
+
+    return response

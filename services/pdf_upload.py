@@ -65,7 +65,8 @@ def save_pdf_files(files):
     # 업로드 디렉토리가 없으면 생성
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     
-    saved_paths = []
+    file_names = []
+    file_paths = []
     
     for file in files:
         # PDF 확장자 검사
@@ -79,10 +80,11 @@ def save_pdf_files(files):
         
         file.seek(0)
         
-        filename = secure_filename_with_hangul(file.filename)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        
+        file_name = secure_filename_with_hangul(file.filename)
+        file_names.append(file_name)
+
+        file_path = os.path.join(UPLOAD_FOLDER, file_name)
+        file_paths.append(file_path)
         file.save(file_path)
-        saved_paths.append(file_path)
     
-    return saved_paths
+    return file_names, file_paths

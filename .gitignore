@@ -2,9 +2,6 @@
 *.index
 Modefile
 prograb-446401-7e4846bbef85.json
-<<<<<<< Updated upstream
-=======
 .env
->>>>>>> Stashed changes
 /uploads/pdf
 __pycache__/
