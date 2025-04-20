@@ -1,5 +1,9 @@
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, g
+
+import jwt
+from utils.token_utils import get_token_from_header, SECRET_KEY, ALGORITHM
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 def validate_request(required_keys):
     def decorator(func):
@@ -32,3 +36,21 @@ def validate_request(required_keys):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+def token_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = get_token_from_header()
+        if not token:
+            return jsonify({"status": "error", "error": "token_missing", "message": "토큰이 필요합니다."}), 401
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            g.user = payload  # 전역 g 객체에 user 정보 저장 (Flask에서 공용 context용)
+        except ExpiredSignatureError:
+            return jsonify({"status": "error", "error": "token_expired", "message": "토큰이 만료되었습니다."}), 401
+        except InvalidTokenError:
+            return jsonify({"status": "error", "error": "invalid_token", "message": "유효하지 않은 토큰입니다."}), 401
+
+        return f(*args, **kwargs)
+
+    return decorated_function

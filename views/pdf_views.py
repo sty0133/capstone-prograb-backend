@@ -7,7 +7,7 @@ from services.pdf_upload import *
 from services.pdf_process import pdf_process
 from services.pdf_rag import pdf_rag_chain
 
-from utils.decorators import validate_request
+from utils.decorators import validate_request, token_required
 
 from models.mysql.my_pdf_model import MysqlPDF
 from models.mysql.my_chat_model import MysqlChat
@@ -15,6 +15,7 @@ from models.mysql.my_chat_model import MysqlChat
 pdf = Blueprint('pdf', __name__, url_prefix='/pdf')
 
 class Upload(MethodView):
+    @token_required
     @validate_request(['user_id'])
     def post(self):
         if 'files' not in request.files:
@@ -115,6 +116,7 @@ class Upload(MethodView):
 
 # 나중에 유저 인증 추가해야함.
 class RAG(MethodView):
+    @token_required
     @validate_request(['chat_id', 'question'])
     def post(self):
         try:

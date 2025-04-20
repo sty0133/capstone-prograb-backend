@@ -3,6 +3,7 @@ from flask.views import MethodView
 
 from models.mysql.my_user_model import MysqlUser
 from utils.decorators import validate_request
+from utils.token_utils import create_access_token
 
 user = Blueprint('user', __name__, url_prefix='/user')
 
@@ -16,8 +17,10 @@ class Login(MethodView):
         result, data = MysqlUser.login(user_id, user_password)
 
         if result:
+            access_token = create_access_token({'user_id': user_id})
             return jsonify({"status": "success",
-                            "message": "로그인 성공"}), 200
+                            "message": "로그인 성공",
+                            "token": access_token}), 200
         else:
             if data == 'User not found':
                 return jsonify({"status": "error", 
