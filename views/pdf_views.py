@@ -1,6 +1,6 @@
 import uuid
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask.views import MethodView
 
 from services.pdf_upload import *
@@ -11,24 +11,82 @@ from utils.decorators import validate_request, token_required
 
 from models.mysql.my_pdf_model import MysqlPDF
 from models.mysql.my_chat_model import MysqlChat
+from models.mongodb.mg_user_model import MongodbUserChat
 
-pdf = Blueprint('pdf', __name__, url_prefix='/pdf')
+pdf = Blueprint('pdf', __name__)
 
 class Upload(MethodView):
     @token_required
-    @validate_request(['user_id'])
     def post(self):
         if 'files' not in request.files:
             return jsonify({"error": "PDF 파일이 요청에 포함되지 않았습니다."}), 400
         
         files = request.files.getlist('files')
-        
-        # 파일이 선택되지 않은 경우 체크
         if not any(file.filename for file in files):
             return jsonify({"error": "선택된 파일이 없습니다."}), 400
-        
+
         try:
-            file_names, file_paths = save_pdf_files(files)        
+            file_names, file_paths = save_pdf_files(files)
+
+            if not file_names:
+                return jsonify({
+                    "status": "error",
+                    "error": "invalid_file_type",
+                    "message": "파일이 비어있습니다."
+                }), 400
+
+            # 중요한 로직은 try 블록 내에서 처리
+            while True:
+                new_chat_id = str(uuid.uuid4())
+                if not MysqlChat.check_chat_id_exists(new_chat_id):
+                    break
+
+            user_id = g.user.get('user_id')
+            result, message = MysqlChat.create_new_chat(user_id, new_chat_id)
+
+            if result:
+                result, message = MysqlPDF.insert_pdf_name(new_chat_id, file_names)
+                if not result:
+                    return jsonify({
+                        "status": "error",
+                        "error": "internal_server_error",
+                        "message": message
+                    }), 500
+
+                result, message = MongodbUserChat.initialize_chat(new_chat_id)
+                if not result:
+                    return jsonify({
+                        "status": "error",
+                        "error": "internal_server_error",
+                        "message": message
+                    }), 500
+
+            elif message == 'User not found':
+                return jsonify({
+                    "status": "error",
+                    "error": "user_not_found",
+                    "message": "사용자를 찾을 수 없습니다."
+                }), 404
+
+            # PDF 파일 처리
+            result, message = pdf_process(file_paths, new_chat_id)
+            if not result:
+                return jsonify({
+                    "status": "error",
+                    "error": "internal_server_error",
+                    "message": message
+                }), 500
+
+            return jsonify({
+                "status": "success",
+                "message": "파일 업로드 성공",
+                "data": {
+                    "file_names": file_names,
+                    "file_count": len(file_names),
+                    "chat_id": new_chat_id,
+                }
+            }), 200
+
         except MaxFilesExceededError as e:
             return jsonify({
                 "status": "error",
@@ -53,68 +111,7 @@ class Upload(MethodView):
                 "error": "internal_server_error",
                 "message": "파일 업로드 중 오류가 발생했습니다."
             }), 500
-        
-        finally:
-            while True:
-                new_chat_id = str(uuid.uuid4())
-                if not MysqlChat.check_chat_id_exists(new_chat_id):
-                    break
 
-            user_id = request.data['user_id']
-            result, message = MysqlChat.create_new_chat(user_id, new_chat_id)
-
-            if result:
-                # PDF 파일 정보 DB에 저장
-                result, message = MysqlPDF.insert_pdf_name(new_chat_id, file_names)
-                
-                if not result:
-                    return jsonify({
-                        "status": "error",
-                        "error": "internal_server_error",
-                        "message": message
-                    }), 500
-                
-            elif message == 'User not found':
-                return jsonify({
-                    "status": "error",
-                    "error": "user_not_found",
-                    "message": "사용자를 찾을 수 없습니다."
-                }), 404
-            else:
-                return jsonify({
-                    "status": "error",
-                    "error": "chat_id_creation_failed",
-                    "message": "채팅 ID 생성 실패"
-                }), 500
-                
-            # PDF 파일 처리
-            result, message = pdf_process(file_paths, new_chat_id)
-
-            if not result:
-                return jsonify({
-                    "status": "error",
-                    "error": "internal_server_error",
-                    "message": message
-                }), 500
-
-            elif message == "pdf_names must be a list":
-                return jsonify({
-                    "status": "error",
-                    "error": "invalid_file_type",
-                    "message": message
-                }), 400
-
-            return jsonify({
-                "status": "success",
-                "message": "파일 업로드 성공",
-                "data": {
-                    "file_names": file_names,
-                    "file_count": len(file_names),
-                    "chat_id": new_chat_id,
-                }
-            }), 200
-
-# 나중에 유저 인증 추가해야함.
 class RAG(MethodView):
     @token_required
     @validate_request(['chat_id', 'question'])
@@ -169,6 +166,15 @@ class RAG(MethodView):
                         "error_code": "CHATBOT_RESPONSE_ERROR"
                     }), 400
 
+            # 채팅 업데이트
+            result, message = MongodbUserChat.update_chat_by_id(chat_id, question, response)
+            if not result:
+                return jsonify({
+                    "status": "error",
+                    "message": message,
+                    "error_code": "CHAT_UPDATE_ERROR"
+                }), 500
+            
             # 정상 응답
             return jsonify({
                 "status": "success",

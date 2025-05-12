@@ -38,10 +38,13 @@ def embed():
         model = SentenceTransformer("nlpai-lab/KURE-v1", device=device)
         embeddings = model.encode(docs)
 
+        # numpy.ndarray를 Python 리스트로 변환
+        embeddings_list = embeddings.tolist()
+
         return jsonify({
             "status": "success",
             "message": "임베딩 생성 성공",
-            "data": embeddings
+            "data": embeddings_list
         }), 200
 
     except Exception as e:

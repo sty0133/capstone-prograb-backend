@@ -1,7 +1,6 @@
 import requests
 import time
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
 
 from utils.google_cld_vision import *
 from utils.date_utils import *
@@ -47,7 +46,7 @@ class CrawlingNotice:
     @staticmethod
     def format_embedded_data(doc_no, category, title, content_text, image_text_conv):
         all_contents = title + content_text + image_text_conv
-        embedded_vector = load_and_retrieve_docs_sliding_window(all_contents)
+        embedded_vector, _ = load_and_retrieve_docs_sliding_window(all_contents)
         faiss_ids = InsertVectors.dcu(embedded_vector)
 
         formated_embed = {

@@ -19,22 +19,26 @@ def dcu_rag_chain(question):
         
         return result
 
-    query_vector = embedding_model(question)
-
-    faiss_ids = FindTopSimilarVectors.dcu(query_vector)   # 벡터 ID 가 추출된다.
-
-    if not faiss_ids:
-        return "질문을 구체적으로 해주세요."
-    
-    embedded_doc = MongodbEmbeddedVector.get_documents_by_faiss_ids(faiss_ids)
-    docs = remove_duplicates_preserve_order(embedded_doc)
-    find_docs = [MongodbDCU.find_document_by_doc_and_category(doc) for doc in docs]
-
-    formatted_prompt = f"사용자 질문: {question}\n\참고자료: {find_docs}"
-
     async def async_function():
         chat_gpt = ChatGPT()
-        return await chat_gpt.get_response(formatted_prompt)
+        response = await chat_gpt.is_dcu_domain_question(question)
+        if response:
+            query_vector = embedding_model([question])
+
+            faiss_ids = FindTopSimilarVectors.dcu(query_vector)   # 벡터 ID 가 추출된다.
+
+            if not faiss_ids:
+                return "질문을 구체적으로 해주세요."
+            
+            embedded_doc = MongodbEmbeddedVector.get_documents_by_faiss_ids(faiss_ids)
+            docs = remove_duplicates_preserve_order(embedded_doc)
+            find_docs = [MongodbDCU.find_document_by_doc_and_category(doc) for doc in docs]
+
+            formatted_prompt = f"사용자 질문: {question}\n\참고자료: {find_docs}"
+            response = await chat_gpt.get_response(formatted_prompt, 'dcu')
+        else:
+            response = await chat_gpt.get_response(question, 'dcu_default')
+        return response
 
     try:
         response = asyncio.run(

@@ -25,37 +25,50 @@ class InvalidFileTypeError(PDFUploadError):
         self.message = f"'{filename}' 파일은 PDF 형식이 아닙니다. PDF 파일만 업로드 가능합니다."
         super().__init__(self.message)
 
-def secure_filename_with_hangul(filename):
-    """한글 파일명을 안전하게 처리하는 함수"""
+def sanitize_pdf_filename(filename):
     # 파일 확장자 분리
     name, ext = os.path.splitext(filename)
-    
+
+    # 확장자가 .pdf가 아닌 경우 예외 처리
+    if ext.lower() != '.pdf':
+        raise InvalidFileTypeError(filename)
+
+    # 불필요한 확장자 제거 (.ppt, .hwp, .hwpx 등)
+    invalid_extensions = [
+        # 문서 및 오피스 파일
+        '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.hwp', '.hwpx', '.txt', '.rtf', '.odt',
+
+        # 이미지
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.tiff', '.webp', '.heic',
+
+        # 오디오
+        '.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a',
+
+        # 비디오
+        '.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm',
+
+        # 압축 파일
+        '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+
+        # 코드 및 실행파일
+        '.exe', '.dll', '.msi', '.sh', '.bat', '.py', '.js', '.java', '.cpp', '.c', '.class',
+
+        # 기타
+        '.iso', '.bin', '.apk', '.dmg', '.csv', '.json', '.xml', '.yml'
+    ]
+    for invalid_ext in invalid_extensions:
+        if invalid_ext in name.lower():
+            name = name.lower().replace(invalid_ext, '')
+
     # 한글과 영숫자만 허용하고 나머지는 언더스코어로 변경
     name = unicodedata.normalize('NFKC', name)
-    
-    # 공백을 언더스코어로 변경
-    name = name.replace(' ', '_')
-    
-    # 허용된 문자만 포함
-    name = ''.join(c for c in name if c.isalnum() or c in '-_.')
-    
-    return name + ext
+    name = name.replace(' ', '_')  # 공백을 언더스코어로 변경
+    name = ''.join(c for c in name if c.isalnum() or c in '-_')
+
+    # 최종적으로 .pdf 확장자 추가
+    return f"{name}.pdf"
 
 def save_pdf_files(files):
-    """
-    PDF 파일들을 저장하는 함수
-    
-    Args:
-        files: 업로드된 파일 객체들의 리스트
-    
-    Returns:
-        저장된 파일 경로들의 리스트
-    
-    Raises:
-        MaxFilesExceededError: 파일 개수가 3개를 초과할 때
-        FileSizeExceededError: 파일 크기가 5MB를 초과할 때
-        InvalidFileTypeError: PDF 파일이 아닐 때
-    """
     if len(files) > 3:
         raise MaxFilesExceededError()
     
@@ -80,7 +93,11 @@ def save_pdf_files(files):
         
         file.seek(0)
         
-        file_name = secure_filename_with_hangul(file.filename)
+        try:
+            file_name = sanitize_pdf_filename(file.filename)
+        except InvalidFileTypeError as e:
+            raise InvalidFileTypeError(f"Invalid file type for file: {file.filename}")
+        
         file_names.append(file_name)
 
         file_path = os.path.join(UPLOAD_FOLDER, file_name)

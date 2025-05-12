@@ -137,7 +137,7 @@ def detect_text_pdf_path(pdf_paths: list):
             continue
             
         file_name = os.path.basename(pdf_path)
-        print(f"처리 중인 파일: {file_name}")
+        # print(f"처리 중인 파일: {file_name}")
         
         source_blob_name = f"temp_pdf/{file_name}"
         output_prefix = f"temp_pdf/output_{file_name}"
@@ -172,7 +172,7 @@ def detect_text_pdf_path(pdf_paths: list):
             )
             
             operation = client.async_batch_annotate_files(requests=[async_request])
-            print(f"OCR 처리 중: {file_name}")
+            # print(f"OCR 처리 중: {file_name}")
             operation.result(timeout=420)
             
             # 결과 파일 가져오기
@@ -203,4 +203,4 @@ def detect_text_pdf_path(pdf_paths: list):
     # 모든 텍스트를 하나의 문자열로 합쳐서 반환 (\n과 \n\n로 구분)
     all_texts = [text.replace("\n", " ") for text in all_texts]
     all_texts = [text.replace("\n\n", "\n") for text in all_texts]
-    return all_texts  # PDF 텍스트 OCR은 이미지 OCR과 달리 텍스트 좌표가 없음.
+    return all_texts[0]  # PDF 텍스트 OCR은 이미지 OCR과 달리 텍스트 좌표가 없음.

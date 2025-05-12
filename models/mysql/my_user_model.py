@@ -62,3 +62,17 @@ class MysqlUser:
 
         # 로그인 성공
         return True, 1
+    
+    def check_chat_ownership(chat_id, user_id):
+        cursor = get_cursor()
+
+        try:
+            # 채팅 ID와 사용자 ID로 소유 유무 확인
+
+            cursor.execute("SELECT user_id FROM chat_info WHERE chat_id=%s", (chat_id,))
+            owner = cursor.fetchone()
+            if owner[0] == user_id:
+                return True
+            return False
+        except Exception as e:
+            return False

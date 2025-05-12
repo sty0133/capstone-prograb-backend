@@ -4,7 +4,7 @@ from asyncio import TimeoutError as AsyncTimeoutError
 
 from utils.openai_gpt import ChatGPT
 
-formatted_prompt = f"사용자 질문: ping test\n\nReferences: hello"
+formatted_prompt = """"""
 
 async def async_function():
     chat_gpt = ChatGPT()

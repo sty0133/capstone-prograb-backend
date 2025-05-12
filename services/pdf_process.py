@@ -19,6 +19,8 @@ def pdf_process(file_paths, new_chat_id):
     
     # OCR 처리된 텍스트 임베딩 -> 리스트 반환
     embedded_vectors, sentences = load_and_retrieve_docs_sliding_window(texts)
+    print(len(embedded_vectors), len(sentences))
+    print(sentences)
 
     # FAISS 인덱스 초기화 및 벡터 저장 -> 리스트 반환
     faiss_ids = InsertVectors.pdf(embedded_vectors, new_chat_id)

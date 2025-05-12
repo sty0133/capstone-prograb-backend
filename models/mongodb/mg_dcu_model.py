@@ -1,5 +1,4 @@
-import os
-from models.mongodb import NOTICE_DOCUMENT_COLLECTION, EMBEDDING_VECTOR_COLLECTION
+from models.mongodb import NOTICE_DOCUMENT_COLLECTION, EMBEDDING_VECTOR_COLLECTION, db
 
 class MongodbDCU:
     def insert_document(document):

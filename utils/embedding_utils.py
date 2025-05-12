@@ -1,29 +1,34 @@
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
-# import requests
-# import os
+import os
+import requests
+
+# def embedding_model(docs):
+#     # 허깅페이스 KURE-v1 임베딩 모델 로컬 사용
+#     model = SentenceTransformer("nlpai-lab/KURE-v1")
+#     embeddings = model.encode(docs)
+#     return embeddings
+
+# 외부 서버에서 임베딩 모델 사용시 주석 해제
 def embedding_model(docs):
-    # 허깅페이스 KURE-v1 임베딩 모델 사용
-    model = SentenceTransformer("nlpai-lab/KURE-v1")
-
-    # GPU 사용 시 주석 해제
-    # model = SentenceTransformer("nlpai-lab/KURE-v1", device='cuda')
-
-    embeddings = model.encode(docs)
-
-    # 외부에서 임베딩 모델 사용시 주석 해제
-    # url = os.getenv('EMBEDDING_MODEL_URL')
-    # data = {
-    #             "docs": docs,
-    #         }
-    # response = requests.post(url, json=data)
-    # if response.status_code == 200:
-    #     embeddings = response.json()
-    #     embeddings = embeddings['data']
-    # else:
-    #     print(f"Error: {response.status_code}, {response.message}")
-    #     return None
-    return embeddings
+    url = os.getenv('EMBEDDING_MODEL_URL')
+    data = {
+                "docs": docs,
+            }
+    response = requests.post(url, json=data)
+    if response.status_code == 200:
+        embeddings = response.json()
+        embeddings = embeddings['data']
+        return embeddings
+    else:
+        try:
+            error_message = response.json().get('message', 'Unknown error occurred')
+        except Exception:
+            error_message = 'Failed to parse error message from response'
+            
+        print(f"Error: {response.status_code} | {error_message}")
+        return None
 
 # https://velog.io/@autorag/RAG-대표적인-청킹-방법-5가지
 # 청크 사이즈와 오버랩 조절로 문서 유사도 조절

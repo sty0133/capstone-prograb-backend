@@ -7,15 +7,15 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
-    from views.chat_views import chat
+    from views.dcu_views import dcu
     from views.pdf_views import pdf
     from views.user_views import user
 
-    app.register_blueprint(chat, url_prefix='/chat')
+    app.register_blueprint(dcu, url_prefix='/dcu')
     app.register_blueprint(pdf, url_prefix='/pdf')
     app.register_blueprint(user, url_prefix='/user')
 
-    CORS(app)
+    CORS(app, origins="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers="*")
 
     return app
 

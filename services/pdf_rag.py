@@ -8,20 +8,24 @@ from utils.openai_gpt import ChatGPT
 
 def pdf_rag_chain(question, chat_id):
 
-    query_vector = embedding_model(question)
-
-    faiss_ids = FindTopSimilarVectors.pdf(query_vector, chat_id)   # 벡터 ID 가 추출된다.
-
-    if not faiss_ids:
-        return "질문을 구체적으로 해주세요."
-    
-    find_docs = MongodbPDF.find_documents_by_faiss_ids(faiss_ids)
-
-    formatted_prompt = f"사용자 질문: {question}\n참고자료: {find_docs}"
-
     async def async_function():
         chat_gpt = ChatGPT()
-        return await chat_gpt.get_response(formatted_prompt)
+        response = await chat_gpt.is_pdf_question(question)
+        if response:
+            query_vector = embedding_model([question])
+
+            faiss_ids = FindTopSimilarVectors.pdf(query_vector, chat_id)   # 벡터 ID 가 추출된다.
+
+            if not faiss_ids:
+                return "질문을 구체적으로 해주세요."
+            
+            find_docs = MongodbPDF.find_documents_by_faiss_ids(faiss_ids)
+
+            formatted_prompt = f"사용자 질문: {question}\n참고자료: {find_docs}"
+            response = await chat_gpt.get_response(formatted_prompt, 'pdf')
+        else:
+            response = await chat_gpt.get_response(question, 'pdf_default')
+        return response
 
     try:
         response = asyncio.run(
